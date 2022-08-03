@@ -15,15 +15,13 @@ const isContact = id => contacts.find(contact => contact.id === id);
 
 app.post('/contacts', (req, res) => {
   let contact = req.body;
-  if (!contact) {
-    res.status(400);
-    throw Error('Provide a Contact');
-  }
 
-  contact = { id: Date.now(), ...contact, meetings: [] };
-  contacts.push(contact);
+  if (contact) {
+    contact = { id: Date.now(), ...contact, meetings: [] };
+    contacts.push(contact);
 
-  res.status(201).json({ contact });
+    res.status(201).json({ contact });
+  } else res.status(400).json('Provide a Contact');
 });
 
 app.post('/contacts/:contactId/meetings', (req, res) => {
@@ -31,74 +29,55 @@ app.post('/contacts/:contactId/meetings', (req, res) => {
   const meeting = { id: Date.now(), contactId, ...req.body };
   const contact = isContact(contactId);
 
-  if (!contact) {
-    res.status(404);
-    throw Error('Contact Not Found');
+  if (contact && meeting) {
+    contact.meetings = [...contact.meetings, meeting];
+    res.status(201).json({ meeting });
+  } else {
+    !contact
+      ? res.status(404).json('Contact Not Found')
+      : res.status(400).json('Provide a Meeting');
   }
-  if (!meeting) {
-    res.status(400);
-    throw Error('Provide a Meeting');
-  }
-
-  contact.meetings = [...contact.meetings, meeting];
-
-  res.status(201).json({ meeting });
 });
 
-app.get('/contacts', (req, res) => {
-  res.status(200).json({ contacts });
-});
+app.get('/contacts', (req, res) => res.status(200).json({ contacts }));
 
 app.get('/contacts/:contactId', (req, res) => {
   const contactId = Number(req.params.contactId);
   const contact = isContact(contactId);
 
-  if (!contact) {
-    res.status(404);
-    throw Error('Contact Not Found');
-  }
-
-  res.status(200).json({ contact });
+  if (contact) res.status(200).json({ contact });
+  else res.status(404).json('Contact Not Found');
 });
 
 app.get('/contacts/:contactId/meetings', (req, res) => {
   const contactId = Number(req.params.contactId);
   const contact = isContact(contactId);
 
-  if (!contact) {
-    res.status(404);
-    throw Error('Contact Not Found');
-  }
-
-  const meetings = contact.meetings;
-  res.status(200).json({ meetings });
+  if (contact) {
+    const meetings = contact.meetings;
+    res.status(200).json({ meetings });
+  } else res.status(404).json('Contact Not Found');
 });
 
 app.put('/contacts/:contactId', (req, res) => {
   const contactId = Number(req.params.contactId);
   const contact = isContact(contactId);
 
-  if (!contact) {
-    res.status(404);
-    throw Error('Contact Not Found');
-  }
+  if (contact) {
+    const updated = { id: contactId, ...req.body, meetings: contact.meetings };
+    contacts = contacts.map(item => (item === contact ? updated : item));
 
-  const updated = { id: contactId, ...req.body, meetings: contact.meetings };
-  contacts = contacts.map(item => (item === contact ? updated : item));
-
-  res.status(201).json({ contact: updated });
+    res.status(201).json({ contact: updated });
+  } else res.status(404).json('Contact Not Found');
 });
 
 app.delete('/contacts/:contactId', (req, res) => {
   const contactId = Number(req.params.contactId);
 
-  if (!isContact(contactId)) {
-    res.status(404);
-    throw Error('Contact Not Found');
-  }
-
-  contacts = contacts.filter(contact => contact.id !== contactId);
-  res.status(200).json();
+  if (isContact(contactId)) {
+    contacts = contacts.filter(contact => contact.id !== contactId);
+    res.status(200).json('');
+  } else res.status(404).json('Contact Not Found');
 });
 
 //
